@@ -131,7 +131,12 @@ for (const file of inputs) {
       ? fitLine(pXs, pYs)
       : { a: pYs[0] ?? 0, b: 0, rms: 0 };
   const bPlayers = clamp(pFit.b, -0.5, 2.5);
-  const playersTarget = Math.exp(pFit.a + bPlayers * uTarget);
+  let playersTarget = Math.exp(pFit.a + bPlayers * uTarget);
+  // Runaway-fit guard: a log-linear fit through noisy early reads must not
+  // extrapolate the tracked base past anything a launch week can hold. A hundred
+  // times the last observed count is already far above plausible week-one growth.
+  const lastPlayers = pXs.length > 0 ? Math.exp(pYs[pYs.length - 1]) : 1;
+  playersTarget = Math.min(playersTarget, 100 * Math.max(1, lastPlayers));
 
   // Spread parts shared by every trophy: walk, staleness, extrapolation, players fit.
   const dU = Math.max(0, uTarget - uLast);
